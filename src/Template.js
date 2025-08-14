@@ -49,7 +49,7 @@ export default class Template {
    * @param {number} shreadSize - The scale factor (must be odd)
    * @param {string} fillPattern - The fill pattern to apply
    * @returns {boolean} True if the pixel should be hidden (made transparent)
-   * @since 0.83.0
+   * @since 0.82.0
    */
   shouldHidePixel(x, y, shreadSize, fillPattern) {
     const centerOffset = Math.floor(shreadSize / 2);

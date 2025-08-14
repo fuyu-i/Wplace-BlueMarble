@@ -515,6 +515,39 @@ export default class Overlay {
     return this;
   }
 
+  /** Adds a `label` to the overlay.
+   * This `label` element will have properties shared between all `label` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `label` that are NOT shared between all overlay `label` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLLabelElement):void} [callback=()=>{}] - Additional JS modification to the `label`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.82.0
+   */
+  addLabel(additionalProperties = {}, callback = () => {}) {
+    const properties = {}; // Shared <label> DOM properties
+
+    const label = this.#createElement('label', properties, additionalProperties); // Creates the <label> element
+    callback(this, label); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds a `select` to the overlay.
+   * This `select` element will have properties shared between all `select` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `select` that are NOT shared between all overlay `select` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLSelectElement):void} [callback=()=>{}] - Additional JS modification to the `select`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.82.0
+   */
+  addSelect(additionalProperties = {}, callback = () => {}) {
+    const properties = {}; // Shared <select> DOM properties
+
+    const select = this.#createElement('select', properties, additionalProperties); // Creates the <select> element
+    callback(this, select); // Runs any script passed in through the callback
+    return this;
+  }
+
+
   /** Updates the inner HTML of the element.
    * The element is discovered by it's id.
    * If the element is an `input`, it will modify the value attribute instead.
