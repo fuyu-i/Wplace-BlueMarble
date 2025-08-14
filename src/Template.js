@@ -29,6 +29,7 @@ export default class Template {
     coords = null,
     chunked = null,
     tileSize = 1000,
+    fillPattern = 'middle-only'
   } = {}) {
     this.displayName = displayName;
     this.sortID = sortID;
@@ -39,6 +40,39 @@ export default class Template {
     this.chunked = chunked;
     this.tileSize = tileSize;
     this.pixelCount = 0; // Total pixel count in template
+    this.fillPattern = fillPattern;
+  }
+
+  /** Determines if a pixel should be hidden based on the fill pattern.
+   * @param {number} x - The x coordinate of the pixel
+   * @param {number} y - The y coordinate of the pixel  
+   * @param {number} shreadSize - The scale factor (must be odd)
+   * @param {string} fillPattern - The fill pattern to apply
+   * @returns {boolean} True if the pixel should be hidden (made transparent)
+   * @since 0.83.0
+   */
+  shouldHidePixel(x, y, shreadSize, fillPattern) {
+    const centerOffset = Math.floor(shreadSize / 2);
+    const isCenter = (x % shreadSize === centerOffset) && (y % shreadSize === centerOffset);
+    
+    switch (fillPattern) {
+      case 'middle-only':
+        return !isCenter; // Hide all except center pixel
+        
+      case 'except-upper-left':
+        const isUpperLeft = (x % shreadSize === 0) && (y % shreadSize === 0);
+        return isUpperLeft; // Hide only upper left pixel
+        
+      case 'except-upper-right':
+        const isUpperRight = (x % shreadSize === shreadSize - 1) && (y % shreadSize === 0);
+        return isUpperRight; // Hide only upper right pixel
+        
+      case 'fill-all':
+        return false; // Don't hide any pixels
+        
+      default:
+        return !isCenter; // Default to middle-only
+    }
   }
 
   /** Creates chunks of the template for each tile.
@@ -144,8 +178,13 @@ export default class Template {
               } else { // Transparent negative space
                 imageData.data[pixelIndex + 3] = 0;
               }
-            } else if (x % shreadSize !== 1 || y % shreadSize !== 1) { // Otherwise only draw the middle pixel
-              imageData.data[pixelIndex + 3] = 0; // Make the pixel transparent on the alpha channel
+            } else {
+              // Apply fill pattern based on user selection
+              const shouldHidePixel = this.shouldHidePixel(x, y, shreadSize, this.fillPattern);
+              
+              if (shouldHidePixel) {
+                imageData.data[pixelIndex + 3] = 0; // Make transparent
+              }
             }
           }
         }
