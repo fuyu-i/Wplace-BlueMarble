@@ -277,6 +277,7 @@ function buildOverlayMain() {
             const enableButton = document.querySelector('#bm-button-enable');
             const disableButton = document.querySelector('#bm-button-disable');
             const coordInputs = document.querySelectorAll('#bm-contain-coords input');
+            const fillPatternContainer = document.querySelector('#bm-contain-fill-pattern');
             
             // Pre-restore original dimensions when switching to maximized state
             // This ensures smooth transition and prevents layout issues
@@ -292,11 +293,11 @@ function buildOverlayMain() {
             const elementsToToggle = [
               '#bm-overlay h1',                    // Main title "Blue Marble"
               '#bm-contain-userinfo',              // User information section (username, droplets, level)
-              '#bm-overlay hr',                    // Visual separator lines
-              '#bm-contain-automation > *:not(#bm-contain-coords)', // Automation section excluding coordinates
+              '#bm-overlay hr',                    // Visual separator lines            
+              '#bm-contain-automation > *:not(#bm-contain-coords):not(#bm-contain-fill-pattern)', // Automation section excluding coordinates and fill pattern
               '#bm-input-file-template',           // Template file upload interface
               '#bm-contain-buttons-action',        // Action buttons container
-              `#${instance.outputStatusId}`        // Status log textarea for user feedback
+              `#${instance.outputStatusId}`        // Status log textarea for user feedback    
             ];
             
             // Apply visibility changes to all toggleable elements
@@ -317,6 +318,11 @@ function buildOverlayMain() {
                 coordsContainer.style.display = 'none';
               }
               
+              // Hide fill pattern container
+              if (fillPatternContainer) {
+                fillPatternContainer.style.display = 'none';
+              }
+              
               // Hide coordinate button (pin icon)
               if (coordsButton) {
                 coordsButton.style.display = 'none';
@@ -326,12 +332,12 @@ function buildOverlayMain() {
               if (createButton) {
                 createButton.style.display = 'none';
               }
-
+              
               // Hide enable templates button
               if (enableButton) {
                 enableButton.style.display = 'none';
               }
-
+              
               // Hide disable templates button
               if (disableButton) {
                 disableButton.style.display = 'none';
@@ -380,11 +386,16 @@ function buildOverlayMain() {
                 coordsContainer.style.margin = '';            // Reset margins
               }
               
+              // Restore fill pattern container
+              if (fillPatternContainer) {
+                fillPatternContainer.style.display = '';
+              }
+              
               // Restore coordinate button visibility
               if (coordsButton) {
                 coordsButton.style.display = '';
               }
-              
+
               // Restore create button visibility and reset positioning
               if (createButton) {
                 createButton.style.display = '';
@@ -437,7 +448,7 @@ function buildOverlayMain() {
             img.alt = isMinimized ? 
               'Blue Marble Icon - Minimized (Click to maximize)' : 
               'Blue Marble Icon - Maximized (Click to minimize)';
-            
+
             // No status message needed - state change is visually obvious to users
           });
         }
@@ -483,6 +494,35 @@ function buildOverlayMain() {
         .addInput({'type': 'number', 'id': 'bm-input-px', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
         .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
       .buildElement()
+      
+      .addDiv({'id': 'bm-contain-fill-pattern'})
+        .addLabel({'textContent': 'Fill Pattern:', 'style': 'display: block; margin-bottom: 5px; font-weight: bold;'}).buildElement()
+        .addSelect({'id': 'bm-select-fill-pattern'}, (instance, select) => {
+          // Different fill pattern options
+          const options = [
+            { value: 'middle-only', text: 'Middle Only (Original)' },
+            { value: 'except-upper-left', text: 'All Except Upper Left' },
+            { value: 'except-upper-right', text: 'All Except Upper Right' },
+            { value: 'fill-all', text: 'Fill All' }
+          ];
+          
+          options.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.text;
+            select.appendChild(optionElement);
+          });
+          
+          const savedPattern = GM_getValue('bmFillPattern', 'middle-only');
+          select.value = savedPattern;
+          
+          select.addEventListener('change', () => {
+            GM_setValue('bmFillPattern', select.value);
+            instance.handleDisplayStatus(`Fill pattern changed to: ${select.options[select.selectedIndex].text}`);
+          });
+        }).buildElement()
+      .buildElement()
+
       .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
       .addDiv({'id': 'bm-contain-buttons-template'})
         .addButton({'id': 'bm-button-enable', 'textContent': 'Enable'}, (instance, button) => {
@@ -494,7 +534,8 @@ function buildOverlayMain() {
         .addButton({'id': 'bm-button-create', 'textContent': 'Create'}, (instance, button) => {
           button.onclick = () => {
             const input = document.querySelector('#bm-input-file-template');
-
+            const fillPatternSelect = document.querySelector('#bm-select-fill-pattern');
+            
             const coordTlX = document.querySelector('#bm-input-tx');
             if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
             const coordTlY = document.querySelector('#bm-input-ty');
@@ -503,18 +544,26 @@ function buildOverlayMain() {
             if (!coordPxX.checkValidity()) {coordPxX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
             const coordPxY = document.querySelector('#bm-input-py');
             if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-
+            
             // Kills itself if there is no file
             if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
-
-            templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
-
+            
+            // Get the selected fill pattern
+            const fillPattern = fillPatternSelect?.value || 'middle-only';
+            
+            templateManager.createTemplate(
+              input.files[0], 
+              input.files[0]?.name.replace(/\.[^/.]+$/, ''), 
+              [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)],
+              fillPattern
+            );
+            
             // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
             // apiManager.templateCoordsTilePixel = apiManager.coordsTilePixel; // Update template coords
             // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
             // templateManager.setTemplateImage(input.files[0]);
 
-            instance.handleDisplayStatus(`Drew to canvas!`);
+            instance.handleDisplayStatus(`Drew to canvas with ${fillPattern} pattern!`);
           }
         }).buildElement()
         .addButton({'id': 'bm-button-disable', 'textContent': 'Disable'}, (instance, button) => {
