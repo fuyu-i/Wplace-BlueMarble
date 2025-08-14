@@ -276,3 +276,39 @@ div:has(> #bm-input-file-template),
 #bm-overlay button:disabled {
   text-decoration: line-through;
 }
+
+/* Select dropdown styling */
+#bm-overlay select {
+  appearance: auto;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: small;
+  font-family: inherit;
+  width: 100%;
+  margin-top: 2px;
+}
+
+#bm-overlay select:focus {
+  outline: 1px solid #1061e5;
+  outline-offset: 1px;
+}
+
+#bm-overlay select option {
+  background-color: #144eb9;
+  color: white;
+}
+
+/* Fill pattern container styling */
+#bm-contain-fill-pattern {
+  margin-top: 0.5em;
+}
+
+#bm-contain-fill-pattern label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: small;
+}
