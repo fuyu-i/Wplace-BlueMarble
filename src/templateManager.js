@@ -122,7 +122,7 @@ export default class TemplateManager {
    * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
    * @since 0.65.77
    */
-  async createTemplate(blob, name, coords) {
+  async createTemplate(blob, name, coords, fillPattern = 'middle-only') {
 
     // Creates the JSON object if it does not already exist
     if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); console.log(`Creating JSON...`);}
@@ -135,7 +135,8 @@ export default class TemplateManager {
       sortID: 0, // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
       authorID: numberToEncoded(this.userID || 0, this.encodingBase),
       file: blob,
-      coords: coords
+      coords: coords,
+      fillPattern: fillPattern
     });
     //template.chunked = await template.createTemplateTiles(this.tileSize); // Chunks the tiles
     const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize); // Chunks the tiles
@@ -157,7 +158,7 @@ export default class TemplateManager {
     // Display pixel count statistics with internationalized number formatting
     // This provides immediate feedback to users about template complexity and size
     const pixelCountFormatted = new Intl.NumberFormat().format(template.pixelCount);
-    this.overlay.handleDisplayStatus(`Template created at ${coords.join(', ')}! Total pixels: ${pixelCountFormatted}`);
+    this.overlay.handleDisplayStatus(`Template created at ${coords.join(', ')} with ${fillPattern} pattern! Total pixels: ${pixelCountFormatted}`);
 
     console.log(Object.keys(this.templatesJSON.templates).length);
     console.log(this.templatesJSON);
@@ -346,6 +347,7 @@ export default class TemplateManager {
           const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
           const authorID = templateKeyArray?.[1] || '0'; // User ID of the person who exported the template
           const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
+          const fillPattern = templateValue.fillPattern || 'middle-only'; // Load fill pattern, default to middle-only
           //const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
           const tilesbase64 = templateValue.tiles;
           const templateTiles = {}; // Stores the template bitmap tiles for each tile.
@@ -367,6 +369,7 @@ export default class TemplateManager {
             displayName: displayName,
             sortID: sortID || this.templatesArray?.length || 0,
             authorID: authorID || '',
+            fillPattern: fillPattern
             //coords: coords
           });
           template.chunked = templateTiles;
